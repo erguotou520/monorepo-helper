@@ -8,8 +8,6 @@ import dependencyTreeRegister from './sidebar/DependencyTree';
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	
-	vscode.window.showInformationMessage('Hello World from monorepo-helper!');
-	
 	dependencyTreeRegister();
 }
 

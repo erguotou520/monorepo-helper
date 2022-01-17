@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
-import { join } from 'path';
-import { readFile } from 'fs/promises';
 import { getPackages, Packages } from '@manypkg/get-packages';
 
-export let _packages: PackageInfo[];
+let _packages: PackageInfo[];
+let _manageTool: string;
+
+export function getManageTool() {
+  return _manageTool;
+}
 
 export interface PackageInfo {
   folderName: string;
+  isRoot: boolean;
   pkg: {
     name?: string;
     version?: string;
@@ -25,13 +29,16 @@ export async function getMonorepoPackages(refresh = false): Promise<PackageInfo[
   if (dir) {
     try {
       const packages = await getPackages(dir);
+      _manageTool = packages.tool;
       _packages = [
         {
           folderName: packages.root.dir,
+          isRoot: true,
           pkg: packages.root.packageJson
         },
         ...packages.packages.map(pkg => ({
           folderName: pkg.dir,
+          isRoot: false,
           pkg: pkg.packageJson
         }))
       ];
