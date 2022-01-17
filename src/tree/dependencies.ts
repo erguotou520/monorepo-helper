@@ -1,17 +1,18 @@
 import * as vscode from "vscode";
 import * as rimraf from "rimraf";
-import { runCommand } from "./command";
+import { runCommand } from "../utils/command";
 import {
   getInstallCommand,
   getInstallDepCommand,
   getRemoveDepsCommand,
-} from "./install";
-import { getMonorepoPackages, PackageInfo } from "./packages";
+} from "../utils/install";
+import { getMonorepoPackages, PackageInfo } from "../utils/packages";
 import { resolve } from "path";
-import outputChannel from "../output/channel";
+import outputChannel from "../utils/channel";
 import { showInfo } from "../utils";
+import { CommonTreeEntity } from "./common";
 
-export class ProjectTreeEntity extends vscode.TreeItem {
+export class ProjectTreeEntity extends CommonTreeEntity {
   constructor(
     public readonly name: string,
     public readonly folderName: string,
@@ -19,10 +20,7 @@ export class ProjectTreeEntity extends vscode.TreeItem {
     public readonly version: string,
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
-    super(isRoot ? `(root)${name}` : name, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
-    this.id = name;
-    this.folderName = folderName;
-    this.isRoot = isRoot;
+    super(isRoot ? `(root)${name}` : name, name, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
     this.description = version;
     this.tooltip = `${name}@${version}`;
     this.version = version;
@@ -30,7 +28,7 @@ export class ProjectTreeEntity extends vscode.TreeItem {
   }
 }
 
-export class DependencyTypeTreeEntity extends vscode.TreeItem {
+export class DependencyTypeTreeEntity  extends CommonTreeEntity {
   constructor(
     public readonly dependencyType: "dependencies" | "devDependencies",
     public readonly packageName: string,
@@ -42,11 +40,12 @@ export class DependencyTypeTreeEntity extends vscode.TreeItem {
   ) {
     super(
       dependencyType,
+      packageName,
+      folderName,
+      isRoot,
       collapsibleState ?? vscode.TreeItemCollapsibleState.None
     );
     this.dependencyType = dependencyType;
-    this.packageName = packageName;
-    this.folderName = folderName;
     this.dependencies = dependencies;
     this.devDependencies = devDependencies;
     const depCount =
@@ -59,7 +58,7 @@ export class DependencyTypeTreeEntity extends vscode.TreeItem {
   }
 }
 
-export class DependencyTreeEntity extends vscode.TreeItem {
+export class DependencyTreeEntity  extends CommonTreeEntity {
   constructor(
     public readonly label: string,
     public readonly version: string,
@@ -69,10 +68,8 @@ export class DependencyTreeEntity extends vscode.TreeItem {
     public readonly isRoot: boolean,
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
-    super(label, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
+    super(label, packageName, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
     this.version = version;
-    this.packageName = packageName;
-    this.folderName = folderName;
     this.dependencyType = dependencyType;
     this.description = version;
     this.tooltip = `${label}@${version}`;
@@ -81,14 +78,14 @@ export class DependencyTreeEntity extends vscode.TreeItem {
 }
 
 export class DependencyTree
-  implements vscode.TreeDataProvider<vscode.TreeItem>
+  implements vscode.TreeDataProvider<CommonTreeEntity>
 {
   packagePromise: Promise<PackageInfo[]>;
   private _onDidChangeTreeData: vscode.EventEmitter<
-    DependencyTreeEntity | undefined | void
-  > = new vscode.EventEmitter<DependencyTreeEntity | undefined | void>();
+  CommonTreeEntity | undefined | void
+  > = new vscode.EventEmitter<CommonTreeEntity | undefined | void>();
   readonly onDidChangeTreeData: vscode.Event<
-    DependencyTreeEntity | undefined | void
+  CommonTreeEntity | undefined | void
   > = this._onDidChangeTreeData.event;
 
   constructor() {
@@ -101,11 +98,11 @@ export class DependencyTree
     this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: DependencyTreeEntity): vscode.TreeItem {
+  getTreeItem(element: DependencyTreeEntity): CommonTreeEntity {
     return element;
   }
 
-  getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
+  getChildren(element?: CommonTreeEntity): Thenable<CommonTreeEntity[]> {
     if (!element) {
       return this.packagePromise.then((packages) => {
         return (
@@ -143,7 +140,7 @@ export class DependencyTree
         );
       }
       const el = element as ProjectTreeEntity;
-      const project = packages.find((pkg) => pkg.pkg.name === element.id);
+      const project = packages.find((pkg) => pkg.pkg.name === element.packageName);
       return [
         new DependencyTypeTreeEntity(
           "dependencies",
@@ -177,7 +174,7 @@ export class DependencyTree
     });
   }
 
-  async installDeps(element: DependencyTreeEntity): Promise<void> {
+  async installDeps(element: CommonTreeEntity): Promise<void> {
     const command = getInstallCommand();
     if (command) {
       await runCommand(command);
@@ -185,7 +182,7 @@ export class DependencyTree
     }
   }
 
-  addDep(element: DependencyTreeEntity): Thenable<void> {
+  addDep(element: CommonTreeEntity): Thenable<void> {
     return vscode.window
       .showInputBox({
         title: "Enter dependency names",
@@ -207,7 +204,7 @@ export class DependencyTree
       });
   }
 
-  addDevDep(element: DependencyTreeEntity): Thenable<void> {
+  addDevDep(element: CommonTreeEntity): Thenable<void> {
     return vscode.window
       .showInputBox({
         title: "Enter dev dependency names",
@@ -241,7 +238,7 @@ export class DependencyTree
     }
   }
 
-  clearAllDeps(element: DependencyTreeEntity): Promise<void> {
+  clearAllDeps(element: CommonTreeEntity): Promise<void> {
     const subNodeModules = "packages/*/node_modules";
     const nodeModules = "node_modules";
     outputChannel.appendLine(`Clearing ${subNodeModules}`);
@@ -315,7 +312,7 @@ export class DependencyTree
     });
   }
 
-  async clearAllAndInstallDeps(element: DependencyTreeEntity): Promise<void> {
+  async clearAllAndInstallDeps(element: CommonTreeEntity): Promise<void> {
     await this.clearAllDeps(element);
     await this.installDeps(element);
   }
@@ -329,11 +326,11 @@ export default function register() {
   );
   vscode.commands.registerCommand(
     "monoDependencies.addDep",
-    (node: DependencyTreeEntity) => dependencyTree.addDep(node)
+    (node: CommonTreeEntity) => dependencyTree.addDep(node)
   );
   vscode.commands.registerCommand(
     "monoDependencies.addDevDep",
-    (node: DependencyTreeEntity) => dependencyTree.addDevDep(node)
+    (node: CommonTreeEntity) => dependencyTree.addDevDep(node)
   );
   vscode.commands.registerCommand(
     "monoDependencies.removeDep",
@@ -341,14 +338,14 @@ export default function register() {
   );
   vscode.commands.registerCommand(
     "monoDependencies.installDeps",
-    (node: DependencyTreeEntity) => dependencyTree.installDeps(node)
+    (node: CommonTreeEntity) => dependencyTree.installDeps(node)
   );
   vscode.commands.registerCommand(
     "monoDependencies.clearAllDeps",
-    (node: DependencyTreeEntity) => dependencyTree.clearAllDeps(node)
+    (node: CommonTreeEntity) => dependencyTree.clearAllDeps(node)
   );
   vscode.commands.registerCommand(
     "monoDependencies.clearAllAndInstallDeps",
-    (node: DependencyTreeEntity) => dependencyTree.clearAllAndInstallDeps(node)
+    (node: CommonTreeEntity) => dependencyTree.clearAllAndInstallDeps(node)
   );
 }

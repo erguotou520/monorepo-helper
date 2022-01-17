@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProgressLocation } from 'vscode';
-import { spawn } from 'child_process';
-import outputChannel from '../output/channel';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import outputChannel from './channel';
 
 export function runCommand(command: string[]) {
   outputChannel.appendLine(`Running command: ${command.join(' ')}`);
@@ -12,6 +12,11 @@ export function runCommand(command: string[]) {
       cancellable: true
     }, (progress, token) => {
       return new Promise<void>((resolve1, reject1) => {
+        let child: ChildProcessWithoutNullStreams;
+        token.onCancellationRequested(() => {
+          outputChannel.appendLine(`Command cancelled: ${command.join(' ')}`);
+          child?.kill();
+        });
 
         let left = 100;
         let _timeout: NodeJS.Timeout;
@@ -30,7 +35,7 @@ export function runCommand(command: string[]) {
   
         fakeIncrease();
   
-        const child = spawn(command[0], command.slice(1), {
+        child = spawn(command[0], command.slice(1), {
           cwd: vscode.workspace.workspaceFolders![0].uri.path,
           stdio: 'pipe',
         });
