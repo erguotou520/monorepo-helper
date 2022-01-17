@@ -19,7 +19,7 @@ export function getInstallDepCommand(deps: string[], {
 }): CommandReturn {
   return {
     npm: ['npm', 'add', ...deps, ...(isDev ? ['-D'] : ['--save']), ...(folderName ? ['-w', folderName] : [])],
-    yarn: ['yarn', ...(packageName ? ['workspace', packageName] : []), 'add', ...deps, ...(isDev ? ['-D'] : [])],
+    yarn: ['yarn', ...(packageName ? ['workspace', packageName] : ['-W']), 'add', ...deps, ...(isDev ? ['-D'] : [])],
     pnpm: ['pnpm', ...(packageName ? ['--filter', packageName] : ['-W']), 'add', ...deps, ...(isDev ? ['-D'] : [])],
   }[getManageTool()];
 }
@@ -33,7 +33,7 @@ export function getRemoveDepsCommand(dep: string, {
 }): CommandReturn {
   return {
     npm: ['npm', 'uninstall', ...(isDev ? ['-D'] : ['--save']), ...(folderName ? ['-w', folderName] : []), dep],
-    yarn: ['yarn', ...(packageName ? ['workspace', packageName] : []),  'remove', dep],
+    yarn: ['yarn', ...(packageName ? ['workspace', packageName] : ['-W']),  'remove', dep],
     pnpm: ['pnpm', 'remove', dep, ...(packageName ? ['--filter', packageName] : [])],
   }[getManageTool()];
 }

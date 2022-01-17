@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
-import { runCommand } from "../utils/command";
-import { getMonorepoPackages, PackageInfo } from "../utils/packages";
+import { showInfo } from "../utils";
+import outputChannel from "../utils/channel";
+import { runCommand, runScript } from "../utils/command";
+import { getScriptCommand } from "../utils/install";
+import { getManageTool, getMonorepoPackages, PackageInfo } from "../utils/packages";
 import { CommonTreeEntity } from "./common";
 
 export class ProjectTreeEntity extends CommonTreeEntity {
@@ -12,7 +15,7 @@ export class ProjectTreeEntity extends CommonTreeEntity {
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
     super(
-      isRoot ? `(root)${name}` : name,
+      isRoot ? `(root)${name}[${getManageTool()}]` : name,
       name,
       folderName,
       isRoot,
@@ -77,8 +80,29 @@ export class ScriptTree implements vscode.TreeDataProvider<CommonTreeEntity> {
 
   runScript(element: CommonTreeEntity) {
     const node = element as ScriptTreeEntity;
-    // const child = runCommand()
-    console.log(node);
+    const command = getScriptCommand(node.label, {
+      packageName: node.isRoot ? undefined : node.packageName,
+      folderName: node.isRoot ? undefined : node.folderName,
+    });
+    if (command) {
+      const _process = { packageName: node.packageName, folderName: node.folderName, isRoot: false, script: node.scriptCommand };
+      // element.contextValue = 'running';
+      vscode.commands.executeCommand('setContext', 'viewItem == runningNode', true);
+      showInfo(`Running ${command.join(' ')}`);
+      const [child, promise] = runScript(command);
+      this.processMap.set(
+        _process,
+        child.pid
+      );
+      promise.then(() => {
+        showInfo(`Command "${command.join(' ')}" finished!`);
+      }).finally(() => {
+        // element.contextValue = 'node';
+        vscode.commands.executeCommand('setContext', 'viewItem == node', true);
+        this.refresh();
+        this.processMap.delete(_process);
+      });
+    }
   }
 
   refresh(): void {
@@ -115,7 +139,7 @@ export class ScriptTree implements vscode.TreeDataProvider<CommonTreeEntity> {
           project!.pkg.scripts![scriptName]!,
           project!.pkg.name!,
           project!.folderName!,
-          false
+          project!.isRoot
         );
       });
     });

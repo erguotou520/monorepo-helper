@@ -6,7 +6,7 @@ import {
   getInstallDepCommand,
   getRemoveDepsCommand,
 } from "../utils/install";
-import { getMonorepoPackages, PackageInfo } from "../utils/packages";
+import { getManageTool, getMonorepoPackages, PackageInfo } from "../utils/packages";
 import { resolve } from "path";
 import outputChannel from "../utils/channel";
 import { showInfo } from "../utils";
@@ -20,7 +20,7 @@ export class ProjectTreeEntity extends CommonTreeEntity {
     public readonly version: string,
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
-    super(isRoot ? `(root)${name}` : name, name, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
+    super(isRoot ? `(root)${name}[${getManageTool()}]` : name, name, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
     this.description = version;
     this.tooltip = `${name}@${version}`;
     this.version = version;
