@@ -1,14 +1,18 @@
 {
   "name": "monorepo-helper",
-  "displayName": "monorepo-helper",
+  "displayName": "Monorepo Helper",
   "description": "VSCode extension that helps you work better with monorepo project",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.63.0"
   },
   "categories": [
     "Other"
   ],
+  "icon": "https://raw.githubusercontent.com/erguotou520/monorepo-helper/master/icon.png",
+  "repository": "erguotou520/monorepo-helper",
+  "keywords": ["monorepo", "workspace", "helper"],
+  "license": "GPL-3.0-or-later",
   "activationEvents": [
     "onView:monoDependencies",
     "onView:monoScripts"
