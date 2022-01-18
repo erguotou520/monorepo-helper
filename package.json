@@ -59,34 +59,22 @@
       {
         "command": "monoScripts.runScript",
         "title": "Run script",
-        "icon": {
-          "light": "./assets/light/run.svg",
-          "dark": "./assets/dark/run.svg"
-        }
+        "icon": "./assets/run.svg"
       },
       {
         "command": "monoScripts.stopScript",
         "title": "Stop script",
-        "icon": {
-          "light": "./assets/light/stop.svg",
-          "dark": "./assets/dark/stop.svg"
-        }
+        "icon": "./assets/stop.svg"
       },
       {
         "command": "monoScripts.reRunScript",
         "title": "Re-run script",
-        "icon": {
-          "light": "./assets/light/refresh.svg",
-          "dark": "./assets/dark/refresh.svg"
-        }
+        "icon": "./assets/re-run.svg"
       },
       {
         "command": "monoScripts.stopAllScripts",
         "title": "Stop all scripts",
-        "icon": {
-          "light": "./assets/light/stop.svg",
-          "dark": "./assets/dark/stop.svg"
-        }
+        "icon": "./assets/stop.svg"
       }
     ],
     "views": {
@@ -110,6 +98,11 @@
         },
         {
           "command": "monoScripts.refreshScripts",
+          "when": "view == monoScripts",
+          "group": "navigation"
+        },
+        {
+          "command": "monoScripts.stopAllScripts",
           "when": "view == monoScripts",
           "group": "navigation"
         }

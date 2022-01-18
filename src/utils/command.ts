@@ -65,6 +65,7 @@ export function runScript(
   const child = spawn(command[0], command.slice(1), {
     cwd: vscode.workspace.workspaceFolders![0].uri.path,
     stdio: "pipe",
+    shell: '/bin/bash',
   });
   child.stdout?.setEncoding("utf8");
   child.stderr?.setEncoding("utf8");
@@ -83,13 +84,45 @@ export function runScript(
         vscode.window.showErrorMessage(error.message);
         reject();
       });
-      child.on("close", (code) => {
+      child.on("close", (code, signal) => {
         if (code !== 0) {
           reject(code);
         } else {
+          outputChannel.appendLine(`Command: ${command.join(" ")} ${'manuallyStopped' in child ? 'was stoped' : 'finished'}!`);
           resolve();
         }
       });
     }),
   ];
+}
+
+export function killProcess(child: ChildProcessWithoutNullStreams, name: string) {
+  return new Promise<void>((resolve) => {
+    let timeout: NodeJS.Timeout;
+
+    vscode.window.withProgress({
+      title: `Stopping ${name}`,
+      location: ProgressLocation.Window,
+    }, (_process) => {
+      return new Promise<void>((resolve1) => {
+        function onStoped() {
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          resolve();
+          resolve1();
+        }
+    
+        child.once('exit', onStoped);
+        child.once('error', onStoped);
+
+        // @ts-ignore
+        child['manuallyStopped'] = true;
+        process.kill(child.pid);
+        timeout = setTimeout(() => {
+          child?.kill();
+        }, 3000);
+      });
+    });
+  });
 }
