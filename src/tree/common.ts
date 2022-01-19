@@ -6,7 +6,7 @@ export class CommonTreeEntity extends TreeItem {
     public readonly packageName: string,
     public readonly folderName: string,
     public readonly isRoot: boolean,
-    public readonly collapsibleState?: TreeItemCollapsibleState,
+    public readonly collapsibleState?: TreeItemCollapsibleState
   ) {
     super(label, collapsibleState);
   }

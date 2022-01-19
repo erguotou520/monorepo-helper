@@ -17,6 +17,7 @@ No setting currently.
 
 - `lerna` monorepo is not supported.
 - `npm` monorepo is not tested.
+- Only support `packages` as workspace folder currently.
 
 ## Release Notes
 

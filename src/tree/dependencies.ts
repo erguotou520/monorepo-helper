@@ -6,10 +6,14 @@ import {
   getInstallDepCommand,
   getRemoveDepsCommand,
 } from "../utils/install";
-import { getManageTool, getMonorepoPackages, PackageInfo } from "../utils/packages";
+import {
+  getManageTool,
+  getMonorepoPackages,
+  PackageInfo,
+} from "../utils/packages";
 import { resolve } from "path";
 import outputChannel from "../utils/channel";
-import { showInfo } from "../utils";
+import { getRootPath, showInfo } from "../utils";
 import { CommonTreeEntity } from "./common";
 
 export class ProjectTreeEntity extends CommonTreeEntity {
@@ -20,7 +24,13 @@ export class ProjectTreeEntity extends CommonTreeEntity {
     public readonly version: string,
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
-    super(isRoot ? `(root)${name}[${getManageTool()}]` : name, name, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
+    super(
+      isRoot ? `(root)${name}[${getManageTool()}]` : name,
+      name,
+      folderName,
+      isRoot,
+      collapsibleState ?? vscode.TreeItemCollapsibleState.None
+    );
     this.description = version;
     this.tooltip = `${name}@${version}`;
     this.version = version;
@@ -28,7 +38,7 @@ export class ProjectTreeEntity extends CommonTreeEntity {
   }
 }
 
-export class DependencyTypeTreeEntity  extends CommonTreeEntity {
+export class DependencyTypeTreeEntity extends CommonTreeEntity {
   constructor(
     public readonly dependencyType: "dependencies" | "devDependencies",
     public readonly packageName: string,
@@ -58,7 +68,7 @@ export class DependencyTypeTreeEntity  extends CommonTreeEntity {
   }
 }
 
-export class DependencyTreeEntity  extends CommonTreeEntity {
+export class DependencyTreeEntity extends CommonTreeEntity {
   constructor(
     public readonly label: string,
     public readonly version: string,
@@ -68,7 +78,13 @@ export class DependencyTreeEntity  extends CommonTreeEntity {
     public readonly isRoot: boolean,
     public readonly collapsibleState?: vscode.TreeItemCollapsibleState
   ) {
-    super(label, packageName, folderName, isRoot, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
+    super(
+      label,
+      packageName,
+      folderName,
+      isRoot,
+      collapsibleState ?? vscode.TreeItemCollapsibleState.None
+    );
     this.version = version;
     this.dependencyType = dependencyType;
     this.description = version;
@@ -82,10 +98,10 @@ export class DependencyTree
 {
   packagePromise: Promise<PackageInfo[]>;
   private _onDidChangeTreeData: vscode.EventEmitter<
-  CommonTreeEntity | undefined | void
+    CommonTreeEntity | undefined | void
   > = new vscode.EventEmitter<CommonTreeEntity | undefined | void>();
   readonly onDidChangeTreeData: vscode.Event<
-  CommonTreeEntity | undefined | void
+    CommonTreeEntity | undefined | void
   > = this._onDidChangeTreeData.event;
 
   constructor() {
@@ -140,7 +156,9 @@ export class DependencyTree
         );
       }
       const el = element as ProjectTreeEntity;
-      const project = packages.find((pkg) => pkg.pkg.name === element.packageName);
+      const project = packages.find(
+        (pkg) => pkg.pkg.name === element.packageName
+      );
       return [
         new DependencyTypeTreeEntity(
           "dependencies",
@@ -254,58 +272,46 @@ export class DependencyTree
             message: "Start to clear packages node_modules",
           });
           return new Promise<void>((_resolve1, _reject1) => {
-            rimraf(
-              resolve(
-                vscode.workspace.workspaceFolders![0].uri.path,
-                subNodeModules
-              ),
-              (error) => {
-                if (error) {
-                  vscode.window.showErrorMessage(
-                    "Failed to clear packages node_modules"
-                  );
-                  progress.report({
-                    increment: 100,
-                    message: "Failed to clear packages node_modules",
-                  });
-                  _reject1();
-                  _reject();
-                } else {
-                  progress.report({
-                    increment: 50,
-                    message: "Start to clear root node_modules",
-                  });
-                  outputChannel.appendLine(`Clearing ${nodeModules}`);
-                  rimraf(
-                    resolve(
-                      vscode.workspace.workspaceFolders![0].uri.path,
-                      nodeModules
-                    ),
-                    (error) => {
-                      if (error) {
-                        progress.report({
-                          increment: 50,
-                          message: "Failed to clear root node_modules",
-                        });
-                        vscode.window.showErrorMessage(
-                          "Failed to clear root node_modules"
-                        );
-                        _reject1();
-                        _reject();
-                      } else {
-                        progress.report({
-                          increment: 50,
-                          message: "Node_modules cleared!",
-                        });
-                        showInfo("Node_modules cleared!");
-                        _resolve1();
-                        _resolve();
-                      }
-                    }
-                  );
-                }
+            rimraf(resolve(getRootPath()!, subNodeModules), (error) => {
+              if (error) {
+                vscode.window.showErrorMessage(
+                  "Failed to clear packages node_modules"
+                );
+                progress.report({
+                  increment: 100,
+                  message: "Failed to clear packages node_modules",
+                });
+                _reject1();
+                _reject();
+              } else {
+                progress.report({
+                  increment: 50,
+                  message: "Start to clear root node_modules",
+                });
+                outputChannel.appendLine(`Clearing ${nodeModules}`);
+                rimraf(resolve(getRootPath()!, nodeModules), (error) => {
+                  if (error) {
+                    progress.report({
+                      increment: 50,
+                      message: "Failed to clear root node_modules",
+                    });
+                    vscode.window.showErrorMessage(
+                      "Failed to clear root node_modules"
+                    );
+                    _reject1();
+                    _reject();
+                  } else {
+                    progress.report({
+                      increment: 50,
+                      message: "Node_modules cleared!",
+                    });
+                    showInfo("Node_modules cleared!");
+                    _resolve1();
+                    _resolve();
+                  }
+                });
               }
-            );
+            });
           });
         }
       );
